@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#09080c" />
+<title>NEON RUSH — NYX Dash Lab 0.2</title>
+<style>
+:root { color-scheme: dark; --red:#ff254b; --soft:rgba(255,255,255,.62) }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+#game{width:100%;height:100%;display:block;outline:0;touch-action:none}
+#hud{position:absolute;inset:0;pointer-events:none;color:white}
+.top{position:absolute;left:max(18px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top));display:flex;align-items:flex-start;gap:10px}
+.sig{width:4px;height:37px;background:var(--red);border-radius:8px;box-shadow:0 0 22px #e81b48}
+.eyebrow{font-size:10px;letter-spacing:.25em;font-weight:800;color:#fd5270}
+.brand{font-weight:900;font-size:clamp(18px,3vw,28px);letter-spacing:.06em;line-height:1.1}
+.sub{color:#b7a8b0;font-size:10px;letter-spacing:.12em;margin-top:3px}
+.topRight{position:absolute;right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));text-align:right;letter-spacing:.12em;font-size:10px;color:#fff8}
+.topRight b{display:block;color:#ffd3dc;font-size:12px;letter-spacing:.09em;margin-top:3px}
+.bottomNote{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);font-size:10px;letter-spacing:.15em;color:rgba(255,255,255,.42);white-space:nowrap}
+#pad{position:absolute;left:max(22px,env(safe-area-inset-left));bottom:max(36px,calc(env(safe-area-inset-bottom) + 24px));height:126px;width:126px;border:1px solid rgba(255,255,255,.2);border-radius:50%;background:radial-gradient(circle,rgba(255,50,88,.10),rgba(255,255,255,.035) 72%);pointer-events:auto;touch-action:none;box-shadow:inset 0 0 45px #ff174215}
+#pad:after{content:"MOVE";position:absolute;top:10px;width:100%;text-align:center;letter-spacing:.24em;font-size:9px;color:#ffb9c3a9}
+#stick{position:absolute;left:41px;top:41px;width:44px;height:44px;border-radius:50%;border:2px solid #ff7690aa;background:linear-gradient(135deg,#58232d,#211018);box-shadow:0 0 30px #ff1d4a28;transform:translate(0,0)}
+#dash{position:absolute;right:max(29px,env(safe-area-inset-right));bottom:max(48px,calc(env(safe-area-inset-bottom) + 34px));width:102px;height:102px;border-radius:50%;border:2px solid rgba(255,133,153,.87);background:radial-gradient(circle at 45% 28%,#f72b5c,#99112e 60%,#3b0916);color:#fff;font-family:inherit;letter-spacing:.15em;font-weight:900;font-size:14px;pointer-events:auto;touch-action:none;box-shadow:0 0 32px #ff17424d,inset 0 0 18px #ff9fb028;display:grid;place-content:center;gap:1px;line-height:1.2;outline:none}
+#dash small{font-size:10px;opacity:.7;letter-spacing:.08em}
+#dash.cool{filter:grayscale(.78);opacity:.68;box-shadow:none}
+#dash:active{transform:scale(.94)}
+#dashStatus{position:absolute;right:max(27px,env(safe-area-inset-right));bottom:max(165px,calc(env(safe-area-inset-bottom) + 150px));width:112px;text-align:center;font-size:10px;letter-spacing:.15em;color:#ffd0d8}
+#splash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#08070bdd;pointer-events:auto;z-index:4;text-align:center;padding:24px}
+#splash.hidden{display:none}
+.splashCard{width:min(370px,100%);background:linear-gradient(150deg,#291018ee,#100b11ee);border:1px solid #ff4b7055;border-radius:18px;padding:25px 20px;box-shadow:0 20px 70px #0009}
+.splashCard h1{margin:2px 0 6px;font-size:25px;letter-spacing:.09em}
+.splashCard p{color:#c8aab4;font-size:13px;line-height:1.5;margin:10px 0 20px}
+.splashCard button{background:#ed2350;color:#fff;border:0;border-radius:9px;font-weight:800;letter-spacing:.12em;padding:13px 29px;font-size:14px;cursor:pointer}
+#noWebGL{display:none}
+@media (pointer:fine){#pad,#dash,#dashStatus{opacity:.2;transition:opacity .2s}#pad:hover,#dash:hover{opacity:1}}
+@media (max-height:480px){#pad{width:105px;height:105px;bottom:20px}#stick{left:33px;top:33px;width:39px;height:39px}#dash{width:85px;height:85px;bottom:22px}#dashStatus{bottom:115px}.bottomNote{display:none}}
+@media (max-width:500px) and (orientation:portrait){.bottomNote{bottom:15px;font-size:8px}#pad{bottom:45px}#dash{bottom:45px}.topRight{top:60px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div class="top"><div class="sig"></div><div><div class="eyebrow">NYX // FIELD TEST</div><div class="brand">NEON RUSH</div><div class="sub">DASH LAB &nbsp;•&nbsp; 0.2</div></div></div>
+  <div class="topRight">TRAINING SIMULATION<b>MOVE + DASH</b></div>
+  <div id="pad" aria-label="Virtual movement joystick"><div id="stick"></div></div>
+  <div id="dashStatus">DASH READY</div>
+  <button id="dash" aria-label="Dash"><span>➤ DASH</span><small>BURST</small></button>
+  <div class="bottomNote">DRAG RIGHT SIDE TO LOOK · WASD + SHIFT ON PC</div>
+</div>
+<div id="splash">
+  <div class="splashCard">
+    <div class="eyebrow">PROTOTYPE 0.2</div>
+    <h1>NYX: DASH LAB</h1>
+    <p>Move with the left thumb. Drag the right side to look around. Tap DASH to burst forward.<br><br>For the best view, rotate your iPhone sideways.</p>
+    <button id="start">START TEST</button>
+  </div>
+</div>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+'use strict';
+(() => {
+  const canvas=document.getElementById('game'), splash=document.getElementById('splash');
+  const dashButton=document.getElementById('dash'), dashStatus=document.getElementById('dashStatus');
+  const pad=document.getElementById('pad'), stick=document.getElementById('stick');
+  const fail=(message)=>{splash.classList.remove('hidden');splash.querySelector('h1').textContent='COULD NOT START';splash.querySelector('p').textContent=message;splash.querySelector('button').style.display='none';};
+  if(!window.BABYLON){fail('Babylon.js could not load. Connect to the internet and reopen this page.');return;}
+  let engine;
+  try{engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:true},true);}catch(e){fail('3D is unavailable in this browser: '+e.message);return;}
+  const scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.025,.018,.035,1);
+  scene.fogMode=BABYLON.Scene.FOGMODE_EXP2;scene.fogDensity=.014;scene.fogColor=new BABYLON.Color3(.08,.035,.055);
+  const camera=new BABYLON.FreeCamera('follow',new BABYLON.Vector3(0,4,-7),scene);camera.minZ=.08;camera.maxZ=240;camera.fov=.87;
+  const hemi=new BABYLON.HemisphericLight('sky',new BABYLON.Vector3(0,1,0),scene);hemi.intensity=.72;hemi.diffuse=new BABYLON.Color3(.80,.74,.83);hemi.groundColor=new BABYLON.Color3(.21,.14,.18);
+  const keyLight=new BABYLON.DirectionalLight('key',new BABYLON.Vector3(-.4,-1,.5),scene);keyLight.intensity=.82;keyLight.diffuse=new BABYLON.Color3(1,.72,.76);
+  const redLight=new BABYLON.PointLight('red',new BABYLON.Vector3(-5,5,2),scene);redLight.intensity=45;redLight.diffuse=new BABYLON.Color3(1,.025,.15);redLight.range=26;
+  const v3=(x,y,z)=>new BABYLON.Vector3(x,y,z);
+  const mat=(name,color,emissive=0,alpha=1)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.specularColor=new BABYLON.Color3(.18,.14,.17);m.emissiveColor=m.diffuseColor.scale(emissive);m.alpha=alpha;if(alpha<1)m.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;return m;};
+  const m={floor:mat('matte anthracite','#17151d'),slab:mat('concrete','#29242b'),edge:mat('edge','#6a2b3d',.2),dark:mat('pitch black','#100e14'),black:mat('clothes','#201b23'),hair:mat('black hair','#0c0910'),hairLit:mat('hair sheen','#29202b'),skin:mat('pale skin','#e0a4a5'),skinShade:mat('skin shading','#c98589'),eyes:mat('red eyes','#d21b3a',.55),metal:mat('metal hardware','#92858a',.05),red:mat('neon red','#ff234d',.95),redDim:mat('faded neon','#6e172b',.45),white:mat('soft white','#e9c6cc',.12)};
+  const box=(name,w,h,d,x,y,z,material,parent)=>{const mesh=BABYLON.MeshBuilder.CreateBox(name,{width:w,height:h,depth:d},scene);mesh.position.set(x,y,z);mesh.material=material;if(parent)mesh.parent=parent;return mesh;};
+  const sphere=(name,diam,x,y,z,material,parent,segments=9)=>{const mesh=BABYLON.MeshBuilder.CreateSphere(name,{diameter:diam,segments},scene);mesh.position.set(x,y,z);mesh.material=material;if(parent)mesh.parent=parent;return mesh;};
+  const cylinder=(name,h,top,bottom,x,y,z,material,parent,tess=9)=>{const mesh=BABYLON.MeshBuilder.CreateCylinder(name,{height:h,diameterTop:top,diameterBottom:bottom,tessellation:tess},scene);mesh.position.set(x,y,z);mesh.material=material;if(parent)mesh.parent=parent;return mesh;};
+  // Small stylized arena. Everything is simple geometry for fast phone testing.
+  box('roof foundation',45,1.3,58,0,-.8,0,m.slab);
+  box('roof surface',44,.12,57,0,-.09,0,m.floor);
+  for(let i=-21;i<=21;i+=3){box('line edge x',.035,.018,55,i,-.023,0,m.edge);}
+  for(let i=-27;i<=27;i+=3){box('line edge z',43,.018,.035,0,-.023,i,m.edge);}
+  for(let x of [-21.6,21.6]){box('roof outerline',.20,.04,56,x,.03,0,m.redDim);}
+  for(let z of [-27.6,27.6]){box('roof outerline',44,.04,.20,0,.03,z,m.redDim);}
+  for(let z=-10;z<=20;z+=10){
+    box('dash marker',6,.022,.26,0,.012,z,m.red);
+    for(let x of [-3,3]){box('marker',.12,.024,1.5,x,.012,z+1,m.redDim);}
+  }
+  // World skyline around the arena, distant enough not to block the camera.
+  let seed=1337;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  for(let i=0;i<72;i++){
+    const angle=i/72*Math.PI*2,dist=43+rand()*38,x=Math.sin(angle)*dist,z=Math.cos(angle)*dist;
+    const w=4+rand()*8,h=6+rand()*24,d=4+rand()*9;
+    box('distant building',w,h,d,x,h/2-3,z,i%3===0?m.dark:m.black);
+    if(i%4===0){box('red roof light',w+.1,.13,d+.1,x,h-2.96,z,m.redDim);}
+  }
+  // Training sculpture and lit run lane.
+  for(let x of [-9,9]) for(let z of [-14,8,20]){
+    box('training pillar',1.3,3,1.3,x,1.5,z,m.black);
+    box('pillar top',1.45,.13,1.45,x,3.0,z,m.redDim);
+  }
+  for(let x of [-2.5,2.5])box('runway',.09,.015,45,x,.017,2,m.redDim);
+  // NYX v0.2 — a custom lightweight, *real* 3D character built from deformable
+  // anatomical lofts and curved hair meshes; no flat billboard or sprite.
+  const root=new BABYLON.TransformNode('Nyx character root',scene);root.position.set(0,.045,-15);
+  const bob=new BABYLON.TransformNode('Nyx body',scene);bob.parent=root;
+  const hip=new BABYLON.TransformNode('hips for stride',scene);hip.parent=bob;hip.position.y=1.10;
+  // Make softer cel-like skin and glossy leather; deliberately simple on mobile.
+  m.skin.diffuseColor=BABYLON.Color3.FromHexString('#e8b7ad');
+  m.skin.specularColor=new BABYLON.Color3(.14,.09,.09);
+  m.black.diffuseColor=BABYLON.Color3.FromHexString('#161119');
+  m.black.specularColor=new BABYLON.Color3(.38,.24,.30);
+  m.hair.diffuseColor=BABYLON.Color3.FromHexString('#09070c');
+  m.hair.specularColor=new BABYLON.Color3(.32,.21,.26);
+  const blush=mat('lip tint','#ae5f66');
+  const eyeliner=mat('eyeliner','#150d15');
+  const graphite=mat('graphite leather','#2b222e');
+  const shine=mat('black hair glints','#3b2935');
+  const accent=mat('crimson costume seam','#a80e2c',.16);
+  const bone=mat('warm eye whites','#efe0d9');
+  const brow=mat('eyebrows','#130c15');
+  const bootSole=mat('platform sole','#100c12');
+  const buckleSteel=mat('buckled steel','#c6a8aa');
+  const {PI}=Math;
+  const addEll=(n,x,y,z,sx,sy,sz,material,parent,segments=14)=>{
+    let e=sphere(n,1,x,y,z,material,parent,segments);e.scaling.set(sx,sy,sz);return e;
+  };
+  // Body/face are smooth elliptical ring lofts instead of cylinders or boxes.
+  function loft(name,rings,material,parent,sides=16){
+    const pts=[],norm=[],ind=[],uv=[];
+    for(let j=0;j<rings.length;j++){
+      const r=rings[j];
+      for(let i=0;i<=sides;i++){
+        const a=i/sides*PI*2;
+        pts.push((r.x||0)+Math.sin(a)*r.rx, r.y,(r.z||0)+Math.cos(a)*r.rz);
+        uv.push(i/sides,j/(rings.length-1));
+      }
+    }
+    for(let j=0;j<rings.length-1;j++) for(let i=0;i<sides;i++){
+      const q=j*(sides+1)+i, r=q+sides+1;
+      ind.push(q,q+1,r, q+1,r+1,r);
+    }
+    BABYLON.VertexData.ComputeNormals(pts,ind,norm);
+    const vd=new BABYLON.VertexData();vd.positions=pts;vd.indices=ind;vd.normals=norm;vd.uvs=uv;
+    const mesh=new BABYLON.Mesh(name,scene);vd.applyToMesh(mesh);mesh.material=material;mesh.parent=parent;
+    return mesh;
+  }
+  function strap(n,x,y,z,width,material,parent){
+    return box(n,width,.054,.04,x,y,z,material,parent);
+  }
+  function ring(n,diam,thick,x,y,z,material,parent,rot=[0,0,0]){
+    const r=BABYLON.MeshBuilder.CreateTorus(n,{diameter:diam,thickness:thick,tessellation:14},scene);
+    r.parent=parent;r.position.set(x,y,z);r.rotation.set(...rot);r.material=material;return r;
+  }
+  function curvedHair(n,points,radius,material,parent){
+    const path=points.map(p=>v3(...p));
+    const mesh=BABYLON.MeshBuilder.CreateTube(n,{path,tessellation:6,cap:BABYLON.Mesh.CAP_ALL,
+      radiusFunction:(i,d)=>Math.max(.003,radius*(1-i/(path.length-1)*.66))},scene);
+    mesh.material=material;mesh.parent=parent;return mesh;
+  }
+  // Slender stylized anatomy: torso, bare waist and fitted cropped top.
+  loft('sculpted exposed abdomen',[
+    {y:1.11,rx:.245,rz:.149},{y:1.24,rx:.200,rz:.130},
+    {y:1.37,rx:.204,rz:.140},{y:1.42,rx:.233,rz:.147}
+  ],m.skin,bob);
+  loft('tailored black crop top',[
+    {y:1.40,rx:.235,rz:.157},{y:1.49,rx:.273,rz:.187},
+    {y:1.59,rx:.292,rz:.208},{y:1.69,rx:.265,rz:.181},
+    {y:1.75,rx:.155,rz:.110}
+  ],m.black,bob);
+  // Suggest bust shaping with soft broad forms, not detached spheres.
+  addEll('left subtle bodice form',-.125,1.583,.109,.151,.112,.11,m.black,bob);
+  addEll('right subtle bodice form',.125,1.583,.109,.151,.112,.11,m.black,bob);
+  for(const s of [-1,1]){
+    const sideSeam=box('dark red side seam',.018,.34,.018,s*.260,1.53,.103,accent,bob);sideSeam.rotation.z=-s*.06;
+    const shoulderStrap=box('halter top edge',.045,.20,.052,s*.187,1.733,.10,m.black,bob);shoulderStrap.rotation.z=-s*.54;
+  }
+  // Sculpted hips and black high waist shorts, with a visible separate belt.
+  loft('hip silhouette',[
+    {y:.99,rx:.320,rz:.207},{y:1.09,rx:.334,rz:.211},
+    {y:1.18,rx:.287,rz:.187},{y:1.21,rx:.242,rz:.160}
+  ],m.black,bob);
+  loft('waistband and belt',[
+    {y:1.145,rx:.279,rz:.195},{y:1.205,rx:.265,rz:.184}
+  ],graphite,bob);
+  box('belt clasp',.15,.105,.027,0,1.174,.196,buckleSteel,bob);
+  box('belt buckle void',.105,.07,.03,0,1.175,.209,m.dark,bob);
+  box('belt pin',.085,.018,.04,0,1.174,.219,buckleSteel,bob);
+  for(const s of [-1,1]){
+    box('hip strap diagonal',.045,.17,.028,s*.268,1.065,.183,graphite,bob).rotation.z=s*.33;
+    box('hip strap hardware',.070,.054,.033,s*.265,1.058,.211,buckleSteel,bob);
+  }
+  // Neck, metallic choker, ring pendant.
+  loft('neck',[
+    {y:1.718,rx:.098,rz:.085},{y:1.81,rx:.086,rz:.080},
+    {y:1.90,rx:.096,rz:.091}
+  ],m.skin,bob);
+  loft('black neck choker',[
+    {y:1.813,rx:.106,rz:.093},{y:1.885,rx:.105,rz:.093}
+  ],m.black,bob);
+  ring('front choker O ring',.12,.022,0,1.808,.107,buckleSteel,bob,[PI/2,0,0]);
+  // Anime-leaning, distinctly feminine tapered face with cheekbones and chin.
+  loft('face and jaw',[
+    {y:1.90,rx:.055,rz:.075,z:.035},
+    {y:1.949,rx:.129,rz:.128,z:.007},
+    {y:2.040,rx:.190,rz:.173,z:0},
+    {y:2.18,rx:.211,rz:.185,z:-.010},
+    {y:2.285,rx:.187,rz:.174,z:-.013},
+    {y:2.358,rx:.092,rz:.11,z:-.019}
+  ],m.skin,bob,22);
+  addEll('nose bridge',0,2.094,.183,.031,.068,.032,m.skin,bob,12);
+  addEll('nose tip',0,2.047,.202,.049,.028,.031,m.skin,bob,12);
+  addEll('upper lip',0,1.985,.136,.071,.019,.013,blush,bob,12);
+  addEll('lower lip',0,1.969,.139,.075,.019,.014,blush,bob,12);
+  addEll('lower-lip highlight',0,1.966,.149,.033,.005,.006,m.skinShade,bob,10);
+  for(const s of [-1,1]){
+    // eye slant, dark eyeliner, red irises, tiny catchlights & sharp brows.
+    const ew=addEll('almond eyeliner',s*.091,2.136,.162,.083,.031,.017,eyeliner,bob,12);ew.rotation.z=-s*.17;
+    const white=addEll('almond eye',s*.090,2.136,.178,.066,.022,.013,bone,bob,12);white.rotation.z=-s*.17;
+    const ir=addEll('ruby iris',s*.084,2.135,.190,.024,.025,.009,m.eyes,bob,12);
+    addEll('eye glint',s*.078,2.147,.199,.008,.009,.005,m.white,bob,8);
+    const br=addEll('sharp eyebrow',s*.095,2.202,.165,.084,.014,.019,brow,bob,12);br.rotation.z=s*.12;
+    addEll('ear',s*.21,2.107,-.006,.045,.095,.052,m.skin,bob,12);
+    ring('hoop earring',.09,.012,s*.234,2.030,.006,buckleSteel,bob,[0,0,PI/2]);
+    ring('ear upper stud',.030,.009,s*.242,2.112,.014,buckleSteel,bob,[0,0,PI/2]);
+  }
+  // A rounded hair crown plus layered long black locks reaching the waist.
+  const hairRoot=new BABYLON.TransformNode('independently swaying hair',scene);hairRoot.parent=bob;
+  hairRoot.position.set(0,2.24,-.095);
+  addEll('shiny black hair crown',0,.056,-.017,.238,.173,.193,m.hair,hairRoot,18);
+  // Hair curtains are thick three-dimensional tubes, *not* flat image planes.
+  for(let i=0;i<27;i++){
+    const u=(i-13)/13;
+    const side= Math.sign(u||1);
+    const x0=u*.197;
+    const x1=u*.265 + Math.sin(i*2.2)*.019;
+    const length=1.10+(.27*(1-Math.abs(u)))+((i*7%9)/70);
+    curvedHair('long layered black hair '+i,[
+      [x0,.13,-.140+Math.abs(u)*.05],
+      [x0*1.22,-.06,-.236],
+      [x1,-.42,-.258-.043*Math.sin(i)],
+      [x1*1.15,-.73,-.243],
+      [x1*1.10,-length,-.186-.035*(i%3)]
+    ], .050+(i%4)*.005, i%6===0?shine:m.hair, hairRoot);
+  }
+  for(const s of [-1,1]){
+    curvedHair('face framing long bangs '+s,[
+      [s*.185,.14,.06], [s*.231,-.035,.145],
+      [s*.255,-.25,.12], [s*.26,-.61,.074], [s*.241,-.92,-.012]
+    ],.055,m.hair,hairRoot);
+    curvedHair('layered long side tendril '+s,[
+      [s*.226,.02,.055],[s*.262,-.21,.10],
+      [s*.29,-.52,.01],[s*.27,-1.11,-.08]
+    ],.032,shine,hairRoot);
+  }
+  curvedHair('center front fringe',[
+    [-.030,.18,.129],[-.024,.02,.206],[-.051,-.18,.228],[-.07,-.29,.185]
+  ],.044,m.hair,hairRoot);
+  // Thin strands highlight the red lighting without dying her hair red.
+  for(let i=0;i<5;i++){
+    const x=-.19+i*.095;
+    curvedHair('hair reflected sheen '+i,[
+      [x,.04,-.201],[x*1.13,-.32,-.278],
+      [x*1.2,-.73,-.274],[x*1.13,-1.02,-.225]
+    ],.006,i%2?shine:accent,hairRoot);
+  }
+  // Pivoting articulated limbs. Not a skin-weighted production rig, but they
+  // actually move in 3D and do not depend on a billboard illusion.
+  const limb=[];
+  for(const s of [-1,1]){
+    const leg=new BABYLON.TransformNode('leg root '+s,scene);
+    leg.parent=hip;leg.position.set(s*.176,0,0);
+    loft('shorts leg '+s,[
+      {y:-.03,rx:.157,rz:.154},{y:-.13,rx:.169,rz:.155},
+      {y:-.19,rx:.155,rz:.142}
+    ],m.black,leg);
+    loft('thigh '+s,[
+      {y:-.17,rx:.140,rz:.132},{y:-.32,rx:.152,rz:.146},
+      {y:-.54,rx:.125,rz:.118},{y:-.65,rx:.099,rz:.100}
+    ],m.skin,leg);
+    loft('above knee stocking +'+s,[
+      {y:-.52,rx:.128,rz:.121},{y:-.63,rx:.112,rz:.108},
+      {y:-.84,rx:.095,rz:.098},{y:-.96,rx:.105,rz:.102}
+    ],s===-1?m.black:m.skin,leg);
+    // Tall asymmetric stocking on one side; opposite bare knee + sock.
+    loft('calf + stocking '+s,[
+      {y:-.69,rx:.112,rz:.107},{y:-.79,rx:.136,rz:.135},
+      {y:-.98,rx:.109,rz:.112},{y:-1.055,rx:.094,rz:.098}
+    ],s===-1?m.black:m.skin,leg);
+    loft('goth boot shaft '+s,[
+      {y:-.86,rx:.118,rz:.116},{y:-1.005,rx:.110,rz:.114},
+      {y:-1.11,rx:.138,rz:.124}
+    ],m.black,leg);
+    addEll('boot upper '+s,0,-1.105,.090,.160,.115,.233,graphite,leg,12);
+    box('boot thick platform sole '+s,.324,.10,.45,0,-1.18,.093,bootSole,leg);
+    box('boot toe welt +'+s,.318,.024,.46,0,-1.145,.099,m.dark,leg);
+    box('boot red welt +'+s,.322,.015,.449,0,-1.224,.094,accent,leg);
+    for(let k=0;k<3;k++){
+      box('metal boot clasp +'+s+' '+k,.17,.015,.026,0,-1.045+k*.068,.229,buckleSteel,leg);
+      box('boot buckle clip +'+s+' '+k,.035,.047,.027,s*.090,-1.045+k*.068,.229,buckleSteel,leg);
+    }
+    for(let k=0;k<2;k++){
+      const y=-.28-k*.115;
+      loft('thigh harness band +'+s+' '+k,[
+        {y:y-.027,rx:.161,rz:.151},{y:y+.027,rx:.161,rz:.151}
+      ],k===0?graphite:m.dark,leg);
+      box('silver leg clip +'+s+' '+k,.055,.074,.028,s*.097,y,.167,buckleSteel,leg);
+    }
+    // Long hip-to-harness straps around the side of the shorts.
+    const hanging=box('leather hanging harness +'+s,.046,.30,.031,s*.157,-.19,.145,graphite,leg);
+    hanging.rotation.z=s*.10;
+    limb.push(leg);
+    const shoulder=new BABYLON.TransformNode('arm root '+s,scene);
+    shoulder.parent=bob;shoulder.position.set(s*.289,1.702,0);
+    addEll('rounded shoulder '+s,s*.028,-.015,0,.108,.126,.111,m.skin,shoulder,12);
+    loft('slender arm '+s,[
+      {y:-.04,x:s*.03,rx:.099,rz:.09},{y:-.20,x:s*.06,rx:.083,rz:.075},
+      {y:-.42,x:s*.073,rx:.061,rz:.06},{y:-.64,x:s*.074,rx:.067,rz:.068}
+    ],m.skin,shoulder);
+    loft('black fingerless glove '+s,[
+      {y:-.60,x:s*.074,rx:.070,rz:.073},
+      {y:-.73,x:s*.076,rx:.075,rz:.072}
+    ],m.black,shoulder);
+    addEll('gloved hand '+s,s*.075,-.775,.008,.084,.104,.05,m.black,shoulder,12);
+    loft('upper arm strap +'+s,[
+      {y:-.175,x:s*.061,rx:.096,rz:.083},
+      {y:-.110,x:s*.053,rx:.099,rz:.085}
+    ],graphite,shoulder);
+    box('arm strap buckle +'+s,.07,.07,.022,s*.055,-.145,.085,buckleSteel,shoulder);
+    box('wrist metal detail +'+s,.11,.016,.023,s*.075,-.615,.065,buckleSteel,shoulder);
+    limb.push(shoulder);
+  }
+  // Distinct red accent at back shoulder blades like the concept lighting.
+  for(const s of [-1,1]){
+    const stitch=box('red rear top seam '+s,.018,.31,.018,s*.235,1.54,-.163,accent,bob);
+    stitch.rotation.z=-s*.14;
+  }
+  const shadow=BABYLON.MeshBuilder.CreateDisc('shadow',{radius:.66,tessellation:24},scene);shadow.rotation.x=Math.PI/2;
+  const shadowMat=mat('shadow','#050409',0,.42);shadowMat.disableLighting=true;shadow.material=shadowMat;shadow.position.set(0,-.012,-15);
+  // Neon speed wake. Short, reusable meshes avoid new geometry each dash.
+  const trails=[];for(let i=0;i<12;i++){const trail=sphere('red dash particle '+i,.19,0,-10,0,m.red,undefined,6);trail.isVisible=false;trails.push({mesh:trail,life:0});}
+  let player={x:0,z:-15, vx:0,vz:0,facing:0,dash:0,cooldown:0,dirX:0,dirZ:1}, yaw=0,pitch=.19,time=0,trailIndex=0,camPosition=v3(0,3.8,-21);
+  let started=false, joyX=0,joyY=0, padPointer=null,lookPointer=null,lastLook={x:0,y:0},held=new Set();
+  const dash=()=>{
+    if(!started||player.cooldown>0)return;
+    let mx=joyX,mz=-joyY;
+    if(held.has('KeyA')||held.has('ArrowLeft'))mx-=1;
+    if(held.has('KeyD')||held.has('ArrowRight'))mx+=1;
+    if(held.has('KeyW')||held.has('ArrowUp'))mz+=1;
+    if(held.has('KeyS')||held.has('ArrowDown'))mz-=1;
+    let len=Math.hypot(mx,mz);
+    if(len>.1){mx/=len;mz/=len;player.dirX=Math.cos(yaw)*mx+Math.sin(yaw)*mz;player.dirZ=-Math.sin(yaw)*mx+Math.cos(yaw)*mz;}
+    else{player.dirX=Math.sin(player.facing);player.dirZ=Math.cos(player.facing);}
+    player.dash=.26;player.cooldown=1.03;
+    dashButton.classList.add('cool');
+    dashStatus.textContent='DASHING';
+    try{if(navigator.vibrate)navigator.vibrate(28)}catch(e){}
+  };
+  const start=()=>{splash.classList.add('hidden');started=true;engine.resize();};
+  document.getElementById('start').addEventListener('click',start);
+  dashButton.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dash()});
+  const resetJoystick=()=>{joyX=0;joyY=0;stick.style.transform='translate(0px,0px)';padPointer=null;};
+  const updateJoystick=(e)=>{const r=pad.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const radius=r.width*.38, l=Math.max(1,Math.hypot(dx,dy)),ratio=Math.min(l,radius)/l;const x=dx*ratio,y=dy*ratio;joyX=x/radius;joyY=y/radius;stick.style.transform=`translate(${x}px,${y}px)`;};
+  pad.addEventListener('pointerdown',e=>{if(!started)return;e.preventDefault();padPointer=e.pointerId;pad.setPointerCapture(e.pointerId);updateJoystick(e)});
+  pad.addEventListener('pointermove',e=>{if(e.pointerId===padPointer)updateJoystick(e)});
+  for(let t of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(t,e=>{if(e.pointerId===padPointer)resetJoystick()});
+  canvas.addEventListener('pointerdown',e=>{if(!started)return;lookPointer=e.pointerId;lastLook={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastLook.x,dy=e.clientY-lastLook.y;lastLook={x:e.clientX,y:e.clientY};yaw-=dx*.005;pitch=BABYLON.Scalar.Clamp(pitch+dy*.003,-.25,.76)});
+  for(let t of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(t,e=>{if(e.pointerId===lookPointer)lookPointer=null});
+  addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight','Space'].includes(e.code))e.preventDefault();held.add(e.code);if(['ShiftLeft','ShiftRight','Space'].includes(e.code)&&!e.repeat)dash();});
+  addEventListener('keyup',e=>held.delete(e.code));
+  addEventListener('blur',()=>{held.clear();resetJoystick();lookPointer=null;});
+  addEventListener('resize',()=>engine.resize());
+  const approachAngle=(a,b,s)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*Math.min(1,s);
+  const spawnTrail=()=>{const t=trails[trailIndex++%trails.length];t.mesh.position.set(player.x+.05*(rand()-.5),.25+rand()*.95,player.z+.05*(rand()-.5));t.mesh.scaling.set(.4+rand(),.4+rand(),.4+rand());t.life=.25;t.mesh.isVisible=true;};
+  let lastTrail=0;
+  scene.onBeforeRenderObservable.add(()=>{
+    let dt=Math.min(engine.getDeltaTime()/1000,.04);if(!started)return;time+=dt;
+    let side=joyX,forward=-joyY;
+    if(held.has('KeyA')||held.has('ArrowLeft'))side-=1;
+    if(held.has('KeyD')||held.has('ArrowRight'))side+=1;
+    if(held.has('KeyW')||held.has('ArrowUp'))forward+=1;
+    if(held.has('KeyS')||held.has('ArrowDown'))forward-=1;
+    let magnitude=Math.min(1,Math.hypot(side,forward));
+    if(magnitude>.05){const length=Math.hypot(side,forward);side/=length;forward/=length;}
+    else{side=0;forward=0;magnitude=0}
+    const mx=(Math.cos(yaw)*side+Math.sin(yaw)*forward)*magnitude;
+    const mz=(-Math.sin(yaw)*side+Math.cos(yaw)*forward)*magnitude;
+    if(player.dash>0){player.dash=Math.max(0,player.dash-dt);player.vx=player.dirX*20;player.vz=player.dirZ*20;lastTrail-=dt;if(lastTrail<=0){spawnTrail();lastTrail=.035;}}
+    else{const blend=1-Math.exp(-dt*11);player.vx+=(mx*5.8-player.vx)*blend;player.vz+=(mz*5.8-player.vz)*blend;}
+    player.x=BABYLON.Scalar.Clamp(player.x+player.vx*dt,-20.8,20.8);
+    player.z=BABYLON.Scalar.Clamp(player.z+player.vz*dt,-26.7,26.7);
+    root.position.set(player.x,.045,player.z);shadow.position.set(player.x,-.015,player.z);
+    const velocity=Math.hypot(player.vx,player.vz);
+    if(velocity>.45){const facing=Math.atan2(player.vx,player.vz);player.facing=approachAngle(player.facing,facing,dt*(player.dash>0?19:10));}
+    root.rotation.y=player.facing;
+    const stride=Math.sin(time*10.5)*(Math.min(1,velocity/5.8))*(player.dash>0?.10:.43);
+    limb[0].rotation.x=stride;limb[2].rotation.x=-stride;
+    limb[1].rotation.x=-stride*.65;limb[3].rotation.x=stride*.65;
+    bob.position.y=Math.abs(Math.sin(time*10.5))*.045*Math.min(1,velocity/5.8);
+    bob.rotation.z=player.dash>0?-.08:0;
+    hairRoot.rotation.z=Math.sin(time*2.7)*.012+Math.sin(time*9)*.016*Math.min(1,velocity/6);
+    hairRoot.rotation.x=-Math.min(.085,velocity*.007)+(player.dash>0?-.10:0);
+    player.cooldown=Math.max(0,player.cooldown-dt);
+    dashButton.classList.toggle('cool',player.cooldown>.01);
+    dashStatus.textContent=player.dash>0?'DASHING':player.cooldown>.01?`RECHARGING ${player.cooldown.toFixed(1)}s`:'DASH READY';
+    for(let t of trails){if(t.life>0){t.life-=dt;t.mesh.isVisible=t.life>0;t.mesh.scaling.scaleInPlace(Math.max(.88,1-dt*2));}}
+    const distance=5.5+(player.dash>0?1.0:0)+(velocity>3?0.25:0);
+    const cameraTarget=v3(player.x,1.47,player.z);
+    const desired=v3(player.x-Math.sin(yaw)*distance,1.47+1.60+pitch*5,player.z-Math.cos(yaw)*distance);
+    const blend=1-Math.exp(-dt*6.8);
+    camPosition=BABYLON.Vector3.Lerp(camPosition,desired,blend);
+    camera.position.copyFrom(camPosition);
+    camera.setTarget(cameraTarget.add(v3(0,pitch*.45,0)));
+  });
+  engine.setHardwareScalingLevel(Math.max(1,Math.min(window.devicePixelRatio||1,2.0)/1.5));
+  engine.runRenderLoop(()=>scene.render());
+})();
+</script>
+</body>
+</html>
