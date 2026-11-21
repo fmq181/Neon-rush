@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#09080c" />
-<title>NEON RUSH — NYX Dash Lab 0.2</title>
+<title>NEON RUSH — NYX Detail Lab 0.3</title>
 <style>
 :root { color-scheme: dark; --red:#ff254b; --soft:rgba(255,255,255,.62) }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -36,6 +36,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
 .splashCard p{color:#c8aab4;font-size:13px;line-height:1.5;margin:10px 0 20px}
 .splashCard button{background:#ed2350;color:#fff;border:0;border-radius:9px;font-weight:800;letter-spacing:.12em;padding:13px 29px;font-size:14px;cursor:pointer}
 #noWebGL{display:none}
+.topRight #viewNyx{pointer-events:auto;display:block;margin:12px 0 0 auto;color:#ffeaf0;border:1px solid #ff62816a;border-radius:7px;background:linear-gradient(140deg,#40111eaa,#170a0fee);padding:10px 12px;font:800 11px system-ui;letter-spacing:.12em;box-shadow:0 3px 22px #0008;touch-action:manipulation;cursor:pointer}
+.topRight #viewNyx span{color:#ff4564;padding-left:5px}
+.topRight #viewNyx.on{background:linear-gradient(140deg,#c52047,#531321);color:white;border-color:#ff879a}
+#inspectHint{position:absolute;top:74%;left:50%;transform:translateX(-50%);color:#ffc5d2;border-radius:20px;background:#120911cc;padding:9px 13px;border:1px solid #ed40604f;text-align:center;font-size:10px;letter-spacing:.08em;white-space:nowrap}
+#inspectHint.hidden{display:none}
+#hud.inspect #pad,#hud.inspect #dash,#hud.inspect #dashStatus{opacity:.15;pointer-events:none}
 @media (pointer:fine){#pad,#dash,#dashStatus{opacity:.2;transition:opacity .2s}#pad:hover,#dash:hover{opacity:1}}
 @media (max-height:480px){#pad{width:105px;height:105px;bottom:20px}#stick{left:33px;top:33px;width:39px;height:39px}#dash{width:85px;height:85px;bottom:22px}#dashStatus{bottom:115px}.bottomNote{display:none}}
 @media (max-width:500px) and (orientation:portrait){.bottomNote{bottom:15px;font-size:8px}#pad{bottom:45px}#dash{bottom:45px}.topRight{top:60px}}
@@ -44,16 +50,17 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
-  <div class="top"><div class="sig"></div><div><div class="eyebrow">NYX // FIELD TEST</div><div class="brand">NEON RUSH</div><div class="sub">DASH LAB &nbsp;•&nbsp; 0.2</div></div></div>
-  <div class="topRight">TRAINING SIMULATION<b>MOVE + DASH</b></div>
+  <div class="top"><div class="sig"></div><div><div class="eyebrow">NYX // FIELD TEST</div><div class="brand">NEON RUSH</div><div class="sub">CHARACTER DETAIL &nbsp;•&nbsp; 0.3</div></div></div>
+  <div class="topRight">CHARACTER TEST<b>MOVE + DASH</b><button id="viewNyx" type="button">VIEW NYX <span>◉</span></button></div>
   <div id="pad" aria-label="Virtual movement joystick"><div id="stick"></div></div>
   <div id="dashStatus">DASH READY</div>
+  <div id="inspectHint" class="hidden">DRAG TO ROTATE NYX · TAP VIEW NYX TO PLAY</div>
   <button id="dash" aria-label="Dash"><span>➤ DASH</span><small>BURST</small></button>
   <div class="bottomNote">DRAG RIGHT SIDE TO LOOK · WASD + SHIFT ON PC</div>
 </div>
 <div id="splash">
   <div class="splashCard">
-    <div class="eyebrow">PROTOTYPE 0.2</div>
+    <div class="eyebrow">PROTOTYPE 0.3</div>
     <h1>NYX: DASH LAB</h1>
     <p>Move with the left thumb. Drag the right side to look around. Tap DASH to burst forward.<br><br>For the best view, rotate your iPhone sideways.</p>
     <button id="start">START TEST</button>
@@ -66,6 +73,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
   const canvas=document.getElementById('game'), splash=document.getElementById('splash');
   const dashButton=document.getElementById('dash'), dashStatus=document.getElementById('dashStatus');
   const pad=document.getElementById('pad'), stick=document.getElementById('stick');
+  const viewNyx=document.getElementById('viewNyx'),inspectHint=document.getElementById('inspectHint');
+  let inspectMode=false;
   const fail=(message)=>{splash.classList.remove('hidden');splash.querySelector('h1').textContent='COULD NOT START';splash.querySelector('p').textContent=message;splash.querySelector('button').style.display='none';};
   if(!window.BABYLON){fail('Babylon.js could not load. Connect to the internet and reopen this page.');return;}
   let engine;
@@ -342,6 +351,138 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
     const stitch=box('red rear top seam '+s,.018,.31,.018,s*.235,1.54,-.163,accent,bob);
     stitch.rotation.z=-s*.14;
   }
+  // NYX v0.3: geometry-first beauty pass: facial features, layered silky hair,
+  // detailed gothic couture and small metal accessories; mobile-optimized.
+  const nail=mat('oxblood nail polish','#840e22',.08);
+  const ruby=mat('deep ruby gem','#d32143',.25);
+  const leatherSoft=mat('fitted matte leather','#231c24');
+  const stitchMat=mat('pale stitched seam','#66555d');
+  const skinHighlight=mat('soft cheek light','#edc0bb');
+  const eyeshadow=mat('winged reddish-black eye shadow','#49202c');
+  const pupils=mat('ink black pupils','#0c080c');
+  const contour=mat('soft cheek contour','#b37d7e');
+  const jewel=mat('pinkish chrome','#e5c6c2',.1);
+  const v=(x,y,z)=>v3(x,y,z);
+  const pathTube=(name,coords,r,material,parent)=>{
+    const path=coords.map(a=>v(...a));
+    const mesh=BABYLON.MeshBuilder.CreateTube(name,{path,radius:r,tessellation:6,cap:BABYLON.Mesh.CAP_ALL},scene);
+    mesh.material=material;mesh.parent=parent;return mesh;
+  };
+  // Ribbon hair strands add broad sheet-like surfaces to the tubular flyaways.
+  // They're curved and double-sided, following the head and shoulder silhouette.
+  function ribbonHair(name,coords,halfWidth,material,parent){
+    const pos=[],ind=[],uv=[],norm=[];
+    for(let i=0;i<coords.length;i++){
+      const p=coords[i],w=halfWidth*(1-.68*Math.pow(i/(coords.length-1),3));
+      pos.push(p[0]-w,p[1],p[2],p[0]+w,p[1],p[2]);
+      uv.push(0,i/(coords.length-1),1,i/(coords.length-1));
+      if(i<coords.length-1){const j=i*2;ind.push(j,j+2,j+1,j+1,j+2,j+3);}
+    }
+    BABYLON.VertexData.ComputeNormals(pos,ind,norm);
+    const vd=new BABYLON.VertexData();vd.positions=pos;vd.normals=norm;vd.indices=ind;vd.uvs=uv;
+    const mesh=new BABYLON.Mesh(name,scene);vd.applyToMesh(mesh);mesh.parent=parent;
+    const matRef=material;
+    if(!matRef.backFaceCulling)mesh.material=matRef;else{matRef.backFaceCulling=false;mesh.material=matRef;}
+    return mesh;
+  }
+  const brows=[];
+  for(const side of [-1,1]){
+    const sign=side;
+    // Narrow skin-shaped contour and matte eye shadow suggest sculpted planes.
+    const cheek=addEll('blended cheek contour '+side,side*.128,2.024,.147,.048,.038,.007,contour,bob,12);
+    cheek.rotation.z=side*.14;
+    const shadowEye=addEll('smoky eye shadow '+side,side*.095,2.169,.162,.086,.038,.007,eyeshadow,bob,12);
+    shadowEye.rotation.z=-side*.13;
+    // Lifted outer eyeliner, fine upper lashes and a separate dark pupil.
+    pathTube('wing liner '+side,[[side*.115,2.152,.185],[side*.155,2.161,.182],[side*.183,2.184,.168]],.007,eyeliner,bob);
+    for(let i=0;i<4;i++){
+      const x=side*(.056+i*.029), y=2.154+(i%2)*.007;
+      pathTube('upper lash '+side+' '+i,[[x,y,.192],[x+side*.004,y+.016,.193],[x+side*.008,y+.029,.180]],.004,eyeliner,bob);
+    }
+    addEll('eye pupil '+side,side*.085,2.137,.199,.009,.020,.005,pupils,bob,9);
+    addEll('subtle cheek glow '+side,side*.133,2.052,.155,.035,.014,.003,skinHighlight,bob,12);
+    pathTube('soft dark eyebrow tail '+side,[[side*.055,2.203,.178],[side*.117,2.215,.17],[side*.163,2.216,.16]],.008,brow,bob);
+    // Earring set includes fine silver loops and red gemstone drops.
+    addEll('earring ruby stud '+side,side*.231,2.079,.034,.013,.018,.011,ruby,bob,10);
+    ring('earring lower loop '+side,.055,.008,side*.234,1.990,.008,buckleSteel,bob,[0,0,PI/2]);
+    // A loose side-fringe cluster that frames the face without covering it.
+    for(let i=0;i<3;i++){
+      const x=side*(.155+i*.022);
+      ribbonHair('face framed layered hair '+side+' '+i,[[x, .13,.133],[x+side*.033,-.13,.150],[x+side*.060,-.39,.095],[x+side*.061,-.74,.044],[x+side*.05,-.94,-.02]],.016, i===1?shine:m.hair,hairRoot);
+    }
+  }
+  // Distinctively tapered anime bangs from the scalp over the brow.
+  for(let i=0;i<11;i++){
+    const x=-.20+i*.039,variation=Math.sin(i*2.4);
+    ribbonHair('sculpted fringe '+i,[[x*.92,.190,.11],[x,.082,.19],[x+variation*.016,-.018,.225],[x+variation*.015,-.12-(i%3)*.026,.201]],.025,i%5===0?shine:m.hair,hairRoot);
+  }
+  // A few large hair sheets give Nyx flowing, silky hair instead of thin spaghetti locks.
+  // Distance from face shifts behind the character, hair retains volume around hips.
+  for(let i=0;i<12;i++){
+    const x=-.215+i*.039,depth=-.192-((i*7)%5)*.009;
+    ribbonHair('long glossy hair panel '+i,[
+      [x*.86,.17,depth+.05],[x*1.07,-.16,depth-.035],
+      [x*1.29,-.45,depth-.064],[x*1.34,-.74,depth-.045],
+      [x*1.18,-1.08,depth+.012],[x*1.1,-1.28+(i%5)*.03,depth+.035]
+    ],.033,i%4===0?shine:m.hair,hairRoot);
+  }
+  // A few thin shine strands break up the silhouette.
+  for(let i=0;i<13;i++){
+    const x=-.230+i*.039;
+    pathTube('hair microstrand '+i,[
+      [x*.86,.10,-.18],[x*1.08,-.19,-.275],
+      [x*1.17,-.58,-.286],[x*1.21,-1.12,-.236]
+    ],.003,i%3===0?accent:shine,hairRoot);
+  }
+  // Bodice seams, layered neckline and structured gothic strapwork.
+  for(let side of [-1,1]){
+    pathTube('bodice side piping '+side,[[side*.182,1.718,.112],[side*.256,1.62,.126],[side*.256,1.492,.114],[side*.206,1.420,.127]],.008,graphite,bob);
+    pathTube('bodice neckline piping '+side,[[0,1.715,.127],[side*.092,1.722,.145],[side*.2,1.728,.10]],.008,buckleSteel,bob);
+    // Underbust cyber-goth harness with metal rivets, all rigged to body.
+    const corset=box('leather underbust band '+side,.037,.17,.018,side*.192,1.47,.172,leatherSoft,bob);
+    corset.rotation.z=side*.43;
+    for(let k=0;k<3;k++) addEll('corset rivet '+side+' '+k,side*(.15+.021*k),1.47+(k-1)*.065,.191,.014,.012,.008,jewel,bob,9);
+    const hipBar=box('lower harness side belt '+side,.045,.33,.033,side*.296,1.06,.142,graphite,bob);
+    hipBar.rotation.z=side*.17;
+    for(let k=0;k<3;k++){
+      addEll('silver belt stud '+side+' '+k,side*(.13+k*.05),1.175,.215,.011,.010,.007,jewel,bob,8);
+    }
+    // Thin metallic chain falling across side of the exposed waist.
+    pathTube('waist chain '+side,[[side*.249,1.41,.161],[side*.295,1.36,.190],[side*.280,1.29,.186],[side*.222,1.246,.196]],.006,jewel,bob);
+    // Waist tattoo-inspired red seam on rear cropped top.
+    pathTube('rear red bodice stitch '+side,[[side*.060,1.709,-.155],[side*.175,1.615,-.191],[side*.219,1.50,-.169]],.007,accent,bob);
+    // A thigh-harness buckle chain suspended on bootward side.
+    const leg=side===-1?limb[0]:limb[2];
+    pathTube('thigh chain '+side,[[side*.09,-.28,.182],[side*.13,-.38,.185],[side*.143,-.43,.174],[side*.125,-.49,.164]],.008,jewel,leg);
+    for(let k=0;k<4;k++){
+      addEll('front thigh harness rivet '+side+' '+k,side*(.045+k*.04),-.31,.159,.012,.013,.008,jewel,leg,8);
+    }
+    // A little jacketless epaulet detail and arm wristband hardware.
+    const arm=side===-1?limb[1]:limb[3];
+    pathTube('arm tattoo line '+side,[[side*.048,-.26,.084],[side*.068,-.36,.071],[side*.074,-.43,.063]],.006,accent,arm);
+    addEll('metal wrist charm '+side,side*.075,-.620,.078,.025,.026,.013,ruby,arm,10);
+    for(let k=0;k<3;k++){
+      const x=side*(.035+k*.038);
+      addEll('small articulated knuckle '+side+' '+k,x,-.828,.021,.017,.029,.035,m.black,arm,8);
+      addEll('oxblood fingernail '+side+' '+k,x,-.85,.051,.012,.021,.006,nail,arm,8);
+    }
+    // Tiny boot laces and stitched boot shafts.
+    pathTube('goth boot front seam '+side,[[0,-.88,.124],[0,-1.02,.143],[0,-1.118,.157]],.008,stitchMat,leg);
+    for(let k=0;k<3;k++){
+      const y=-1.02+k*.061;
+      pathTube('boot crossed laces '+side+' '+k,[[-.056,y-.019,.244],[.054,y+.019,.240]],.008,leatherSoft,leg);
+    }
+  }
+  // Half-circle corset and waist mesh chain at the front.
+  for(let i=-2;i<3;i++){
+    const sx=i*.044;
+    box('lace loop silver '+i,.015,.023,.016,sx,1.497,.228,jewel,bob);
+  }
+  pathTube('goth collar short chain',[[-.075,1.816,.118],[-.037,1.795,.129],[0,1.786,.14],[.042,1.795,.13],[.075,1.818,.117]],.006,jewel,bob);
+  addEll('choker ruby dangle',0,1.754,.145,.027,.046,.015,ruby,bob,12);
+  addEll('collar gem light',-.004,1.771,.156,.009,.014,.004,m.white,bob,8);
+  // Tiny belly button / soft abdomen surface detail.
+  addEll('subtle navel',0,1.255,.148,.017,.012,.005,contour,bob,10);
   const shadow=BABYLON.MeshBuilder.CreateDisc('shadow',{radius:.66,tessellation:24},scene);shadow.rotation.x=Math.PI/2;
   const shadowMat=mat('shadow','#050409',0,.42);shadowMat.disableLighting=true;shadow.material=shadowMat;shadow.position.set(0,-.012,-15);
   // Neon speed wake. Short, reusable meshes avoid new geometry each dash.
@@ -349,7 +490,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
   let player={x:0,z:-15, vx:0,vz:0,facing:0,dash:0,cooldown:0,dirX:0,dirZ:1}, yaw=0,pitch=.19,time=0,trailIndex=0,camPosition=v3(0,3.8,-21);
   let started=false, joyX=0,joyY=0, padPointer=null,lookPointer=null,lastLook={x:0,y:0},held=new Set();
   const dash=()=>{
-    if(!started||player.cooldown>0)return;
+    if(!started||inspectMode||player.cooldown>0)return;
     let mx=joyX,mz=-joyY;
     if(held.has('KeyA')||held.has('ArrowLeft'))mx-=1;
     if(held.has('KeyD')||held.has('ArrowRight'))mx+=1;
@@ -366,6 +507,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
   const start=()=>{splash.classList.add('hidden');started=true;engine.resize();};
   document.getElementById('start').addEventListener('click',start);
   dashButton.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dash()});
+  viewNyx.addEventListener('pointerdown',e=>e.stopPropagation());
+  viewNyx.addEventListener('click',e=>{
+    e.preventDefault();inspectMode=!inspectMode;
+    viewNyx.classList.toggle('on',inspectMode);
+    viewNyx.querySelector('span').textContent=inspectMode?'✕':'◉';
+    inspectHint.classList.toggle('hidden',!inspectMode);
+    document.getElementById('hud').classList.toggle('inspect',inspectMode);
+    if(inspectMode){yaw=player.facing+Math.PI; pitch=.045;player.vx=0;player.vz=0;}
+    resetJoystick();
+  });
   const resetJoystick=()=>{joyX=0;joyY=0;stick.style.transform='translate(0px,0px)';padPointer=null;};
   const updateJoystick=(e)=>{const r=pad.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const radius=r.width*.38, l=Math.max(1,Math.hypot(dx,dy)),ratio=Math.min(l,radius)/l;const x=dx*ratio,y=dy*ratio;joyX=x/radius;joyY=y/radius;stick.style.transform=`translate(${x}px,${y}px)`;};
   pad.addEventListener('pointerdown',e=>{if(!started)return;e.preventDefault();padPointer=e.pointerId;pad.setPointerCapture(e.pointerId);updateJoystick(e)});
@@ -383,6 +534,18 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07070a;fon
   let lastTrail=0;
   scene.onBeforeRenderObservable.add(()=>{
     let dt=Math.min(engine.getDeltaTime()/1000,.04);if(!started)return;time+=dt;
+    if(inspectMode){
+      player.vx=0;player.vz=0;player.dash=0;
+      bob.position.y=Math.sin(time*2)*.007;
+      bob.rotation.z=0;
+      hairRoot.rotation.z=Math.sin(time*1.4)*.008;
+      hairRoot.rotation.x=Math.sin(time*1.2)*.005;
+      limb[0].rotation.x*=.85;limb[2].rotation.x*=.85;limb[1].rotation.x*=.85;limb[3].rotation.x*=.85;
+      const target=v3(player.x,1.52,player.z);
+      const desired=v3(player.x-Math.sin(yaw)*3.35,1.6+pitch*3,player.z-Math.cos(yaw)*3.35);
+      camPosition=BABYLON.Vector3.Lerp(camPosition,desired,1-Math.exp(-dt*7));
+      camera.position.copyFrom(camPosition);camera.setTarget(target);return;
+    }
     let side=joyX,forward=-joyY;
     if(held.has('KeyA')||held.has('ArrowLeft'))side-=1;
     if(held.has('KeyD')||held.has('ArrowRight'))side+=1;
